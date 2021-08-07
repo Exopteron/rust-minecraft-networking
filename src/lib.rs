@@ -109,6 +109,13 @@ impl PacketUtils {
             packet.reverse();
             return packet;
         }
+        pub fn read_varint_prefixed_bytearray(
+            reader: &mut dyn std::io::Read,
+        ) -> std::io::Result<Vec<u8>> {
+            let mut vec = vec![0; VarInt::read_from_reader(reader)? as usize];
+            reader.read_exact(&mut vec)?;
+            Ok(vec)
+        }
     }
 }
 pub enum Element {
@@ -116,13 +123,13 @@ pub enum Element {
     VarintBytearray { array: Vec<u8> },
     UnsignedByte { byte: u8 },
     Byte { byte: i8 },
-    VarInt {varint: i32},
-    Short {short: i16},
-    UnsignedShort {short: u16},
-    Int {int: i32},
-    Long {long: i64},
-    Float {float: f32},
-    Double {double: f64},
+    VarInt { varint: i32 },
+    Short { short: i16 },
+    UnsignedShort { short: u16 },
+    Int { int: i32 },
+    Long { long: i64 },
+    Float { float: f32 },
+    Double { double: f64 },
 }
 pub struct PacketConstructor {
     elements: Vec<Element>,
