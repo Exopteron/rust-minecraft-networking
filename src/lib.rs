@@ -79,6 +79,13 @@ impl PacketUtils {
         vec.append(&mut packet);
         return vec;
     }
+    pub fn write_packet_lengthless(packetid: usize, mut packet: Vec<u8>) -> Vec<u8> {
+        let mut vec = vec![];
+        let mut id = VarInt::write_to_bytes(packetid as i32);
+        vec.append(&mut id);
+        vec.append(&mut packet);
+        return vec;
+    }
     pub fn write_string(string: String) -> Vec<u8> {
         let mut vec = string.as_bytes().to_vec();
         vec.reverse();
@@ -88,15 +95,22 @@ impl PacketUtils {
         vec.reverse();
         return vec;
     }
-    pub fn write_compressed_packet(packetid: usize, packet: Vec<u8>, compress: bool) -> Vec<u8> {
+    pub fn write_compressed_packet(packetid: usize, packet: Vec<u8>, threshold: i32) -> std::io::Result<Vec<u8>> {
         use deflate::deflate_bytes_zlib;
-        let mut data = Self::write_packet(packetid, packet);
+        let mut data = Self::write_packet_lengthless(packetid, packet);
+        let mut compress = false;
+        if threshold < 0 {
+            return Err(Error::new(ErrorKind::Other, "Compression not enabled!"));
+        }
+        if data.len() >= threshold as usize {
+            compress = true;
+        }
         if compress == false {
             let mut packet = vec![];
             packet.append(&mut VarInt::write_to_bytes(data.len() as i32 + 1));
-            packet.push(0x00);
+            packet.append(&mut VarInt::write_to_bytes(0x00));
             packet.append(&mut data);
-            return packet;
+            return Ok(packet);
         } else {
             let mut packet = vec![];
             let datalen = data.len().clone();
@@ -108,7 +122,7 @@ impl PacketUtils {
             x.reverse();
             packet.append(&mut x);
             packet.reverse();
-            return packet;
+            return Ok(packet);
         }
     }
     pub fn read_compressed_packet(reader: &mut dyn std::io::Read) -> std::io::Result<(usize, Vec<u8>)> {
