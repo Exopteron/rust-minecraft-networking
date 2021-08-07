@@ -115,7 +115,6 @@ impl PacketUtils {
             let mut packet = vec![];
             let datalen = data.len().clone();
             let mut data = deflate_bytes_zlib(&data);
-            let mut data = compressed;
             packet.append(&mut VarInt::write_to_bytes(datalen as i32));
             packet.append(&mut data);
             packet.reverse();
