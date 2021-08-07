@@ -9,4 +9,3 @@ edition = "2018"
 [dependencies]
 deflate = "0.9.1"
 compress = "0.2.1"
-lzma-rs = "0.2.0"
