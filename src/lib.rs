@@ -1,4 +1,5 @@
 use std::io::{Error, ErrorKind};
+use std::io::Read;
 pub struct VarInt {}
 impl VarInt {
     pub fn write_to_bytes(value: i32) -> Vec<u8> {
@@ -108,6 +109,35 @@ impl PacketUtils {
             packet.append(&mut x);
             packet.reverse();
             return packet;
+        }
+    }
+    pub fn read_compressed_packet(reader: &mut dyn std::io::Read) -> std::io::Result<(usize, Vec<u8>)> {
+        let packet = Self::read_varint_prefixed_bytearray(reader)?;
+        let mut reader = std::io::Cursor::new(packet);
+        let dtlvint = VarInt::read_from_reader(&mut reader)?;
+        match dtlvint {
+            0x00 => {
+                let packetid = VarInt::read_from_reader(&mut reader)?;
+                let mut packet = vec![];
+                reader.read_to_end(&mut packet)?;
+                return Ok((packetid as usize, packet));
+            }
+            len => {
+                use compress::zlib;
+                let mut decompressed = Vec::new();
+                let mut bytes = vec![];
+                reader.read_to_end(&mut bytes)?;
+                let bytes = std::io::Cursor::new(bytes); 
+                zlib::Decoder::new(bytes).read_to_end(&mut decompressed)?;
+                if decompressed.len() != len as usize {
+                    return Err(Error::new(ErrorKind::Other, "Decompression has failed!"));
+                }
+                let mut reader = std::io::Cursor::new(decompressed);
+                let packetid = VarInt::read_from_reader(&mut reader)?;
+                let mut packet = vec![];
+                reader.read_to_end(&mut packet)?;
+                return Ok((packetid as usize, packet));
+            }
         }
     }
     pub fn read_varint_prefixed_bytearray(
