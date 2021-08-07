@@ -67,6 +67,11 @@ impl VarInt {
         return Ok(x[0]);
     }
 }
+#[derive(Debug, Clone)]
+pub struct Packet {
+    pub id: i32,
+    pub contents: Vec<u8>,
+}
 pub struct PacketUtils {}
 impl PacketUtils {
     pub fn write_packet(packetid: usize, mut packet: Vec<u8>) -> Vec<u8> {
@@ -125,7 +130,7 @@ impl PacketUtils {
             return Ok(packet);
         }
     }
-    pub fn read_compressed_packet(reader: &mut dyn std::io::Read) -> std::io::Result<(usize, Vec<u8>)> {
+    pub fn read_compressed_packet(reader: &mut dyn std::io::Read) -> std::io::Result<Packet> {
         let packet = Self::read_varint_prefixed_bytearray(reader)?;
         let mut reader = std::io::Cursor::new(packet);
         let dtlvint = VarInt::read_from_reader(&mut reader)?;
@@ -134,7 +139,7 @@ impl PacketUtils {
                 let packetid = VarInt::read_from_reader(&mut reader)?;
                 let mut packet = vec![];
                 reader.read_to_end(&mut packet)?;
-                return Ok((packetid as usize, packet));
+                return Ok( Packet {id: packetid as i32, contents: packet });
             }
             len => {
                 use compress::zlib;
@@ -150,10 +155,18 @@ impl PacketUtils {
                 let packetid = VarInt::read_from_reader(&mut reader)?;
                 let mut packet = vec![];
                 reader.read_to_end(&mut packet)?;
-                return Ok((packetid as usize, packet));
+                return Ok( Packet {id: packetid as i32, contents: packet });
             }
         }
     }
+    pub fn read_packet(reader: &mut dyn std::io::Read) -> std::io::Result<Packet> {
+        let packet = Self::read_varint_prefixed_bytearray(reader)?;
+        let mut reader = std::io::Cursor::new(packet);
+        let packetid = VarInt::read_from_reader(&mut reader)?;
+        let mut packet = vec![];
+        reader.read_to_end(&mut packet)?;
+        return Ok(Packet {id: packetid as i32, contents: packet});
+    } 
     pub fn read_varint_prefixed_bytearray(
         reader: &mut dyn std::io::Read,
     ) -> std::io::Result<Vec<u8>> {
