@@ -109,13 +109,13 @@ impl PacketUtils {
             packet.reverse();
             return packet;
         }
-        pub fn read_varint_prefixed_bytearray(
-            reader: &mut dyn std::io::Read,
-        ) -> std::io::Result<Vec<u8>> {
-            let mut vec = vec![0; VarInt::read_from_reader(reader)? as usize];
-            reader.read_exact(&mut vec)?;
-            Ok(vec)
-        }
+    }
+    pub fn read_varint_prefixed_bytearray(
+        reader: &mut dyn std::io::Read,
+    ) -> std::io::Result<Vec<u8>> {
+        let mut vec = vec![0; VarInt::read_from_reader(reader)? as usize];
+        reader.read_exact(&mut vec)?;
+        Ok(vec)
     }
 }
 pub enum Element {
