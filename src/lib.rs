@@ -146,7 +146,7 @@ impl PacketUtils {
                 let mut decompressed = Vec::new();
                 let mut bytes = vec![];
                 reader.read_to_end(&mut bytes)?;
-                let mut bytes = std::io::Cursor::new(bytes); 
+                let bytes = std::io::Cursor::new(bytes); 
                 zlib::Decoder::new(bytes).read_to_end(&mut decompressed)?;
                 if decompressed.len() != len as usize {
                     return Err(Error::new(ErrorKind::Other, "Decompression has failed!"));
@@ -175,6 +175,7 @@ impl PacketUtils {
         Ok(vec)
     }
 }
+#[derive(Clone)]
 pub enum Element {
     StringElement { string: String },
     VarintBytearray { array: Vec<u8> },
@@ -187,6 +188,7 @@ pub enum Element {
     Long { long: i64 },
     Float { float: f32 },
     Double { double: f64 },
+    Bytes { bytes: Vec<u8> }
 }
 pub struct PacketBuilder {
     elements: Vec<Element>,
@@ -240,55 +242,22 @@ impl PacketBuilder {
         };
         self.elements.push(Element::UnsignedByte { byte: byte });
     }
-    pub fn build(self, id: usize) -> Vec<u8> {
-        let mut packet = vec![];
-        for element in self.elements {
-            match element {
-                Element::StringElement { string } => {
-                    packet.append(&mut PacketUtils::write_string(string));
-                }
-                Element::VarintBytearray { mut array } => {
-                    packet.append(&mut VarInt::write_to_bytes(array.len() as i32));
-                    packet.append(&mut array);
-                }
-                Element::UnsignedByte { byte } => {
-                    packet.push(byte);
-                }
-                Element::Byte { byte } => {
-                    packet.push(byte.to_le_bytes()[0]);
-                }
-                Element::VarInt { varint } => {
-                    packet.append(&mut VarInt::write_to_bytes(varint));
-                }
-                Element::Short { short } => {
-                    packet.append(&mut short.to_be_bytes().to_vec());
-                }
-                Element::UnsignedShort { short } => {
-                    packet.append(&mut short.to_be_bytes().to_vec());
-                }
-                Element::Int { int } => {
-                    packet.append(&mut int.to_be_bytes().to_vec());
-                }
-                Element::Long { long } => {
-                    packet.append(&mut long.to_be_bytes().to_vec());
-                }
-                Element::Float { float } => {
-                    packet.append(&mut float.to_be_bytes().to_vec());
-                }
-                Element::Double { double } => {
-                    packet.append(&mut double.to_be_bytes().to_vec());
-                }
-            }
-        }
+    pub fn build(mut self, id: usize) -> Vec<u8> {
+        let packet = self.internal_builder();
         let packet = PacketUtils::write_packet(id, packet);
         return packet;
     }
-    pub fn build_compressed(self, id: usize, threshold: i32) -> std::io::Result<Vec<u8>> {
+    pub fn build_compressed(mut self, id: usize, threshold: i32) -> std::io::Result<Vec<u8>> {
+        let packet = self.internal_builder();
+        let packet = PacketUtils::write_compressed_packet(id, packet, threshold)?;
+        return Ok(packet);
+    }
+    fn internal_builder(&mut self) -> Vec<u8> {
         let mut packet = vec![];
-        for element in self.elements {
-            match element {
+        for element in self.elements.clone() {
+            match element.clone() {
                 Element::StringElement { string } => {
-                    packet.append(&mut PacketUtils::write_string(string));
+                    packet.append(&mut PacketUtils::write_string(string.clone()));
                 }
                 Element::VarintBytearray { mut array } => {
                     packet.append(&mut VarInt::write_to_bytes(array.len() as i32));
@@ -321,9 +290,11 @@ impl PacketBuilder {
                 Element::Double { double } => {
                     packet.append(&mut double.to_be_bytes().to_vec());
                 }
+                Element::Bytes { mut bytes } => {
+                    packet.append(&mut bytes);
+                }
             }
         }
-        let packet = PacketUtils::write_compressed_packet(id, packet, threshold)?;
-        return Ok(packet);
+        return packet;
     }
 }
