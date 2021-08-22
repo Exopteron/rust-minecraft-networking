@@ -256,7 +256,7 @@ impl PacketBuilder {
         let packet = PacketUtils::write_compressed_packet(id, packet, threshold)?;
         return Ok(packet);
     }
-    fn internal_builder(&mut self) -> Vec<u8> {
+    pub fn internal_builder(&mut self) -> Vec<u8> {
         let mut packet = vec![];
         for element in self.elements.clone() {
             match element.clone() {
