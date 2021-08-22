@@ -204,9 +204,13 @@ impl PacketBuilder {
             string: string.to_string(),
         });
     }
-    pub fn insert_bytearray(&mut self, array: Vec<u8>) {
+    pub fn insert_v_bytearray(&mut self, array: Vec<u8>) {
         self.elements
             .push(Element::VarintBytearray { array: array });
+    }
+    pub fn insert_bytearray(&mut self, bytes: Vec<u8>) {
+        self.elements
+            .push(Element::Bytes { bytes });
     }
     pub fn insert_unsigned_byte(&mut self, byte: u8) {
         self.elements.push(Element::UnsignedByte { byte: byte });
