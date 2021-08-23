@@ -258,6 +258,11 @@ impl PacketBuilder {
         let packet = PacketUtils::write_packet(id, packet);
         return packet;
     }
+    pub fn build_pluginmessage(mut self, channel: &str) -> Vec<u8> {
+        let packet = self.internal_builder();
+        let packet = PacketUtils::write_pluginmessage(channel, packet);
+        return packet;
+    }
     pub fn build_compressed(mut self, id: usize, threshold: i32) -> std::io::Result<Vec<u8>> {
         let packet = self.internal_builder();
         let packet = PacketUtils::write_compressed_packet(id, packet, threshold)?;
