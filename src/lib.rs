@@ -84,6 +84,13 @@ impl PacketUtils {
         vec.append(&mut packet);
         return vec;
     }
+    pub fn write_pluginmessage(channel: &str, packet: Vec<u8>) -> Vec<u8> {
+        let mut packet2 = PacketBuilder::new();
+        packet2.insert_string(channel);
+        packet2.insert_short(packet.len() as i16);
+        packet2.insert_bytearray(packet);
+        return packet2.build(0x17);
+    }
     pub fn write_packet_lengthless(packetid: usize, mut packet: Vec<u8>) -> Vec<u8> {
         let mut vec = vec![];
         let mut id = VarInt::write_to_bytes(packetid as i32);
